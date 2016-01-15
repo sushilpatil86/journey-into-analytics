@@ -1,0 +1,282 @@
+## Intro to R Advance ##
+
+setwd("F:\\personal\\BA\\R\\data set")
+
+## Import from csv
+
+chicago<-read.csv("chicago.csv")
+
+## Import with other options
+
+chicago1<- read.csv("chicago.csv", header = FALSE, sep = ",", stringsAsFactors = FALSE)
+
+## Export to the Table
+
+write.csv(chicago, "chicago_exp.txt")
+write.csv(chicago1, "chicago1_exp.txt", row.names = FALSE, col.names = FALSE)
+
+## Importing and exporting data from statistical software and databases
+
+install.packages("foreign")
+library(foreign)
+
+## Import from SAS to R
+
+SAStoR<- read.xport("SAStoR.xpt")
+
+SAStoR1<- read.ssd("SAStoR.ssd")
+
+## Import from SPSS
+
+SPSStoR<- read.spss("SPSStoR.spss")
+
+## Import from STATA
+
+STAtoR<- read.dta("STAtoR.dat")
+
+## Import from Databases
+
+install.packages("RMySQL")
+library(RMySQL)
+?"RMySQL-package"
+
+
+## Data transformation
+
+## cbind adds a new coloumn to the extreme right 
+
+chicago<- cbind(chicago, logo3 = log(chicago$o3))
+
+## Split function
+
+death_split<-split(chicago$death, list(chicago$season))
+
+
+## Apply Function
+
+A<-matrix(1:9, 3,3)
+B<-matrix(4:15, 4,3)
+C<-matrix(8:10, 3,2)
+MyList<-list(A,B,C)
+head(MyList)
+
+## "[" this is the selection operation
+
+lapply(MyList,"[", , 2) ## selects the second coloumn
+lapply(MyList,"[", , 1) ## selects the first coloumn
+lapply(MyList,"[", 1, ) ## selects the first row
+lapply(MyList,"[", 2, ) ## selects the second row
+lapply(MyList,"[", 1, 2) ## selects single element
+
+## sapply
+
+## sapply works as lapply, but it tries to simplify the output to the 
+## most elementary data structure that is possible. In effect, as can be seen
+## in the base manual, sapply is a ‘wrapper’ function for lapply.
+
+sapply(MyList,"[", 2,1 )
+
+## here output is a vector instead of list as seen in lapply
+
+## rep function
+
+z = sapply(MyList,"[", 1, 1)
+z = rep(z,c(3,1,2))
+z
+
+## observe that we have used = instead of <- for variable creation
+
+## mapply function
+
+## mpply means multivariate apply
+
+Q = mapply(rep,1:4,4)
+Q
+
+
+## Cleaning data
+
+## Removing NA
+
+ind<-  which(is.na(chicago$pm10))
+
+chicago[ind,] ## see all the entries with NA
+
+chicago <- na.omit(chicago)
+
+## subset function
+
+chicago_new <- subset(chicago, death > 100)
+
+
+## Cut Function
+
+chicago_death <- cut(chicago$death, breaks = 4, labels = c("low","medium","high","V.high"))
+
+chicago <- cbind(chicago,chicago_death)
+
+
+## data manipulation using dplyr
+
+install.packages("dplyr")
+library(dplyr)
+
+## sub-setting --> filter()
+
+head(filter(chicago, death > 100))
+
+head(filter(chicago, death > 100 & death < 200))
+
+## selecting coloumns --> select()
+
+head(select(chicago,death:season))
+
+## Adding new coloumn --> mutate()
+
+head(mutate(chicago,log_o3 = log(o3)))
+
+## Ordering data --> arrange()
+
+head(arrange(chicago,death))
+
+head(arrange(chicago,-death))
+
+## summarize data--> summarize() & group_by()
+
+chicago_season<- group_by(chicago, season)
+summarise(chicago_season, mean(death), sd(death))
+
+## Functional pipeline Dplyr
+
+chicago%>%filter(death>100)%>%summarise(mean(o3))
+
+chicago%>%filter(death>150)%>%mutate(log_o3 = log(o3))%>%summarise(mean(log_o3),median(log_o3),sd(log_o3))
+
+## Manipulating date objects
+
+fd <- read.csv("Fd.csv")
+str(fd)
+
+## Using Date class to convert a character into a Date.
+
+fd$FlightDate<-as.Date(fd$FlightDate,"%d-%b-%y")
+str(fd)
+
+## Extracting months and weekdays from data
+
+head(months(fd$FlightDate))
+
+unique(months(fd$FlightDate))
+
+head(weekdays(fd$FlightDate))
+
+unique(weekdays(fd$FlightDate))
+
+
+## Computing time intervals and using difftime()
+
+fd$FlightDate[60] - fd$FlightDate[300]
+
+difftime(fd$FlightDate[60],fd$FlightDate[300], units="weeks")
+difftime(fd$FlightDate[60],fd$FlightDate[300], units="days")
+difftime(fd$FlightDate[60],fd$FlightDate[300], units="hours")
+
+## Sub-setting data: All rows when the day is Sunday
+
+dim(fd)
+
+fd_s<-fd%>%filter(weekdays(FlightDate)=="Sunday")
+dim(fd_s)
+
+## Find the number of flights on Sundays for destination Atlanta
+
+fd%>%filter(weekdays(FlightDate)== "Sunday",DestCityName == "Atlanta, GA")%>%nrow()
+
+## Find the number of flights on Sundays for all cities
+
+fd%>%filter(weekdays(FlightDate) == "Sunday")%>%group_by(DestCityName)%>%summarise(n())
+
+## If data has time component with it, then use POSIXct and POSIXlt classes
+
+date1<- Sys.time()
+date1
+class(date1)
+weekdays(date1)
+months(date1)
+
+date2<-as.POSIXlt(date1)
+date2
+str(date2)
+
+date2$wday
+date2$zone
+date2$hour
+
+## lubridate() is a package that is a wrapper for POSIXct class
+
+install.packages("lubridate")
+library(lubridate)
+
+fd$FlightDate<-ymd(fd$FlightDate)
+fd$FlightDate<-dmy(fd$FlightDate)
+fd$FlightDate<-mdy(fd$FlightDate)
+fd$FlightDate<-dmy_hm(fd$FlightDate)
+
+## Joining Dataframes
+
+## Inner join
+
+flightdelay<-read.csv("FlightDelays.csv")
+
+merge(x=fd,y=flightdelay,by = "Carrier")
+
+## Full outer join
+
+merge(x=fd,y=flightdelay,by = "Carrier", all = TRUE)
+
+## Left outer join
+
+merge(x=fd,y=flightdelay,by = "Carrier", all.x = TRUE)
+
+## Right outer join
+
+merge(x=fd,y=flightdelay,by = "Carrier", all.y = TRUE)
+
+## Treating Missing values
+
+sum(is.na(chicago$death))
+
+## Imputing Missing values
+
+chicago$death[is.na(chicago$death)]<-120
+
+## Manipulating strings in R
+
+m<-"Batman"
+
+substr(m,start = 2,stop = 6)
+nchar(m)
+tolower(m)
+toupper(m)
+
+n<-"Bat-Man"
+o<-"Bat/Man"
+
+strsplit(o,split = "/")
+paste(n,split=o)
+grep("-",n)
+grepl("/", o)
+sub("-","/", n)
+
+## Using SQl commands in R
+
+install.packages("sqldf")
+library(sqldf)
+
+chicago_d<- sqldf("select death,o3,season from chicago")
+
+chicago_d<- sqldf("select death,o3,season from chicago where death>100")
+
+chicago_d<- sqldf("select death,o3,season from chicago order by death")
+
+sqldf("select mean(death) from chicago")
